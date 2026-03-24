@@ -1,3 +1,3 @@
 // Supabase credentials for GMH Driver Recruiting CRM
 const SUPABASE_URL = 'https://dveyjjalejixzwredclj.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_DzZxLLFUGa4_YVX5lrm-mg_nmpt8NXR';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2ZXlqamFsZWppeHp3cmVkY2xqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzODQ0NDMsImV4cCI6MjA4OTk2MDQ0M30.o8-pls1iS6PLE4mYZIUHjA4wT6zPZEGgXK-pA5qlRkA';
