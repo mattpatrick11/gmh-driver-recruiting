@@ -1,3 +1,9 @@
+// Global error trap — catch any silent crashes
+window.onerror = function(msg, src, line, col, err) {
+  document.body.insertAdjacentHTML('afterbegin', '<div style="position:fixed;top:0;left:0;right:0;background:red;color:white;padding:10px;z-index:9999;font-size:13px;">JS ERROR: ' + msg + ' (line ' + line + ')</div>');
+  return false;
+};
+
 // ====================================================
 // GLOBALS & INIT
 // ====================================================
