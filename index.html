@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GMH Driver Recruiting CRM</title>
-  <script src="https://cdn.tailwindcss.com" defer></script>
+  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <style>
@@ -1056,6 +1056,34 @@ document.addEventListener('click', e => {
     document.getElementById('smsDriverDropdown').classList.add('hidden');
   }
 });
+
+// Expose all functions to global window scope for onclick handlers
+window.showPage = showPage;
+window.openAddDriver = openAddDriver;
+window.closeAddDriver = closeAddDriver;
+window.closeAddDriverOnBg = closeAddDriverOnBg;
+window.saveNewDriver = saveNewDriver;
+window.openProfile = openProfile;
+window.closeProfile = closeProfile;
+window.closeProfileOnBg = closeProfileOnBg;
+window.setStatus = setStatus;
+window.saveProfile = saveProfile;
+window.toggleChecklist = toggleChecklist;
+window.logTouchpoint = logTouchpoint;
+window.markFollowupDone = markFollowupDone;
+window.filterDrivers = filterDrivers;
+window.smsTab = smsTab;
+window.smsDriverSearch = smsDriverSearch;
+window.selectSMSDriver = selectSMSDriver;
+window.applyTemplate = applyTemplate;
+window.sendSMS = sendSMS;
+window.saveTemplate = saveTemplate;
+window.editTemplate = editTemplate;
+window.deleteTemplate = deleteTemplate;
+window.clearTemplateForm = clearTemplateForm;
+window.addDocument = addDocument;
+window.deleteDocument = deleteDocument;
+window.copyLink = copyLink;
 
 // Init — wait for DOM to be fully ready
 if (document.readyState === 'loading') {
