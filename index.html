@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GMH Driver Recruiting CRM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <style>
+    :root { --navy: #1e3a5f; --navy-dark: #162d4a; --navy-light: #2a4f7c; }
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .sidebar { background: var(--navy); min-height: 100vh; width: 240px; flex-shrink: 0; }
+    .nav-link { display: flex; align-items: center; gap: 10px; padding: 10px 16px; color: #93c5fd; border-radius: 8px; cursor: pointer; transition: all 0.15s; font-size: 14px; }
+    .nav-link:hover { background: var(--navy-light); color: #fff; }
+    .nav-link.active { background: #2563eb; color: #fff; }
+    .nav-icon { width: 18px; height: 18px; flex-shrink: 0; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .stat-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid #e5e7eb; }
+    .driver-card { background: white; border-radius: 12px; padding: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid #e5e7eb; transition: box-shadow 0.15s; }
+    .driver-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+    .badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: 99px; font-size: 12px; font-weight: 500; }
+    .badge-applied { background: #dbeafe; color: #1d4ed8; }
+    .badge-contacted { background: #fef3c7; color: #92400e; }
+    .badge-docs_sent { background: #ffedd5; color: #9a3412; }
+    .badge-offer_extended { background: #ede9fe; color: #5b21b6; }
+    .badge-hired { background: #d1fae5; color: #065f46; }
+    .badge-not_interested { background: #fee2e2; color: #991b1b; }
+    .badge-inactive { background: #f3f4f6; color: #6b7280; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; display: none; overflow-y: auto; }
+    .modal-overlay.open { display: flex; }
+    .modal-box { background: white; border-radius: 16px; width: 100%; max-width: 860px; margin: auto; position: relative; }
+    .pipeline-stage { cursor: pointer; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; border: 2px solid transparent; transition: all 0.15s; white-space: nowrap; }
+    .pipeline-stage.active { border-color: #2563eb; background: #dbeafe; color: #1d4ed8; }
+    .pipeline-stage:not(.active) { background: #f3f4f6; color: #6b7280; }
+    .pipeline-stage:hover:not(.active) { background: #e5e7eb; }
+    .checklist-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f3f4f6; }
+    .checklist-item:last-child { border-bottom: none; }
+    input[type="checkbox"] { width: 16px; height: 16px; accent-color: #2563eb; cursor: pointer; }
+    .form-input { width: 100%; border: 1px solid #d1d5db; border-radius: 8px; padding: 8px 12px; font-size: 14px; outline: none; transition: border-color 0.15s; }
+    .form-input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .btn-primary { background: #2563eb; color: white; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: background 0.15s; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-secondary { background: #f3f4f6; color: #374151; padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: 1px solid #e5e7eb; transition: all 0.15s; }
+    .btn-secondary:hover { background: #e5e7eb; }
+    .btn-danger { background: #fee2e2; color: #991b1b; padding: 6px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all 0.15s; }
+    .btn-danger:hover { background: #fecaca; }
+    .setup-banner { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; }
+    .section-title { font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 4px; }
+    .section-sub { font-size: 14px; color: #6b7280; margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; padding: 10px 14px; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+    td { padding: 12px 14px; font-size: 14px; color: #374151; border-bottom: 1px solid #f3f4f6; }
+    tr:last-child td { border-bottom: none; }
+    .touchpoint-item { padding: 12px; background: #f9fafb; border-radius: 8px; border-left: 3px solid #2563eb; margin-bottom: 8px; }
+    select.form-input { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; background-size: 16px; padding-right: 32px; }
+    .toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 500; z-index: 100; animation: slideIn 0.3s ease; box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+    .toast-success { background: #065f46; color: white; }
+    .toast-error { background: #991b1b; color: white; }
+    @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @media (max-width: 768px) { .sidebar { width: 60px; } .nav-link span { display: none; } .sidebar-logo span { display: none; } }
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .tab-btn { padding: 8px 18px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; border: none; background: #f3f4f6; color: #6b7280; transition: all 0.15s; }
+    .tab-btn.active { background: #2563eb; color: white; }
+  </style>
+</head>
+<body class="bg-gray-50">
+
+<!-- Setup Banner (shown if config not filled in) -->
+<div id="setupBanner" style="display:none;" class="fixed top-0 left-0 right-0 z-40 bg-amber-50 border-b border-amber-200 px-4 py-2 text-center text-sm text-amber-800">
+  ⚠️ <strong>Setup Required:</strong> Open <code>config.js</code> and add your Supabase URL and anon key. <a href="https://app.supabase.com" target="_blank" class="underline font-semibold">Get them here →</a>
+</div>
+
+<div id="appRoot" class="flex" style="padding-top:0;">
+
+  <!-- Sidebar -->
+  <aside class="sidebar fixed top-0 left-0 h-full z-30 flex flex-col">
+    <div class="sidebar-logo flex items-center gap-3 px-4 py-5 border-b border-blue-800">
+      <div class="w-9 h-9 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10l2.5 0M13 16H9m4 0h4M13 16V8h5l2 5.5V16h-2"/></svg>
+      </div>
+      <div>
+        <div class="text-white font-bold text-sm leading-tight">GMH Transport</div>
+        <div class="text-blue-300 text-xs">Recruiting CRM</div>
+      </div>
+    </div>
+    <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+      <a class="nav-link active" onclick="showPage('dashboard')" data-page="dashboard">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><rect x="3" y="3" width="7" height="7" rx="1" stroke-width="2"/><rect x="14" y="3" width="7" height="7" rx="1" stroke-width="2"/><rect x="3" y="14" width="7" height="7" rx="1" stroke-width="2"/><rect x="14" y="14" width="7" height="7" rx="1" stroke-width="2"/></svg>
+        <span>Dashboard</span>
+      </a>
+      <a class="nav-link" onclick="showPage('company')" data-page="company">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <span>Company Drivers</span>
+      </a>
+      <a class="nav-link" onclick="showPage('ownerop')" data-page="ownerop">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 1h4l2.68 13.39a2 2 0 001.94 1.61h9.72a2 2 0 001.94-1.61L23 6H6"/></svg>
+        <span>Owner Operators</span>
+      </a>
+      <a class="nav-link" onclick="showPage('sms')" data-page="sms">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M21 16c0 1.1-.9 2-2 2H5l-4 4V6c0-1.1.9-2 2-2h16c1.1 0 2 .9 2 2v10z"/></svg>
+        <span>SMS Center</span>
+      </a>
+      <a class="nav-link" onclick="showPage('docs')" data-page="docs">
+        <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <span>Documents</span>
+      </a>
+    </nav>
+    <div class="px-3 py-4 border-t border-blue-800">
+      <div class="text-blue-400 text-xs px-2">v1.0 · GMH Transport</div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="flex-1 ml-60 min-h-screen" style="padding: 24px 28px;">
+
+    <!-- ====== DASHBOARD ====== -->
+    <div id="page-dashboard" class="page active">
+      <div id="dashSetupBanner" class="setup-banner hidden">
+        ⚠️ <strong>Setup Required:</strong> Edit <code>config.js</code> with your Supabase credentials to connect the database. <a href="README.md" target="_blank" class="underline">See README →</a>
+      </div>
+      <h1 class="section-title">Dashboard</h1>
+      <p class="section-sub">Recruiting pipeline overview for GMH Transportation</p>
+
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div class="stat-card">
+          <div class="text-3xl font-bold text-gray-900" id="statTotal">—</div>
+          <div class="text-sm text-gray-500 mt-1">Total Applicants</div>
+          <div class="w-8 h-1 bg-blue-500 rounded mt-3"></div>
+        </div>
+        <div class="stat-card">
+          <div class="text-3xl font-bold text-green-600" id="statHired">—</div>
+          <div class="text-sm text-gray-500 mt-1">Hired</div>
+          <div class="w-8 h-1 bg-green-500 rounded mt-3"></div>
+        </div>
+        <div class="stat-card">
+          <div class="text-3xl font-bold text-blue-600" id="statPipeline">—</div>
+          <div class="text-sm text-gray-500 mt-1">Active Pipeline</div>
+          <div class="w-8 h-1 bg-blue-400 rounded mt-3"></div>
+        </div>
+        <div class="stat-card border-red-200">
+          <div class="text-3xl font-bold text-red-600" id="statOverdue">—</div>
+          <div class="text-sm text-red-500 mt-1 font-medium">⚠ Overdue Follow-ups</div>
+          <div class="w-8 h-1 bg-red-500 rounded mt-3"></div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h2 class="font-semibold text-gray-800">Overdue Follow-ups</h2>
+            <span class="badge badge-not_interested text-xs" id="overdueCount">0</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table>
+              <thead><tr><th>Driver</th><th>Due Date</th><th>Notes</th><th></th></tr></thead>
+              <tbody id="overdueTable"><tr><td colspan="4" class="text-center text-gray-400 py-6">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div class="px-5 py-4 border-b border-gray-100">
+            <h2 class="font-semibold text-gray-800">Recent Activity</h2>
+          </div>
+          <div class="p-4 space-y-2 max-h-72 overflow-y-auto" id="recentFeed">
+            <div class="text-center text-gray-400 py-4">Loading…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== COMPANY DRIVERS ====== -->
+    <div id="page-company" class="page">
+      <div class="flex items-center justify-between mb-2">
+        <div>
+          <h1 class="section-title">Company Drivers</h1>
+          <p class="section-sub">CDL-A/B company driver applicants</p>
+        </div>
+        <button class="btn-primary" onclick="openAddDriver('company')">+ Add Driver</button>
+      </div>
+      <div class="flex gap-3 mb-5">
+        <input class="form-input flex-1" placeholder="Search by name, phone, location…" id="companySearch" oninput="filterDrivers('company')" />
+        <select class="form-input w-44" id="companyStatusFilter" onchange="filterDrivers('company')">
+          <option value="">All Statuses</option>
+          <option value="applied">Applied</option>
+          <option value="contacted">Contacted</option>
+          <option value="docs_sent">Docs Sent</option>
+          <option value="offer_extended">Offer Extended</option>
+          <option value="hired">Hired</option>
+          <option value="not_interested">Not Interested</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+      <div id="companyGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div class="text-center text-gray-400 py-12 col-span-3">Loading drivers…</div>
+      </div>
+    </div>
+
+    <!-- ====== OWNER OPERATORS ====== -->
+    <div id="page-ownerop" class="page">
+      <div class="flex items-center justify-between mb-2">
+        <div>
+          <h1 class="section-title">Owner Operators</h1>
+          <p class="section-sub">Independent contractor applicants</p>
+        </div>
+        <button class="btn-primary" onclick="openAddDriver('owner_operator')">+ Add Driver</button>
+      </div>
+      <div class="flex gap-3 mb-5">
+        <input class="form-input flex-1" placeholder="Search by name, phone, location…" id="owneropSearch" oninput="filterDrivers('owner_operator')" />
+        <select class="form-input w-44" id="owneropStatusFilter" onchange="filterDrivers('owner_operator')">
+          <option value="">All Statuses</option>
+          <option value="applied">Applied</option>
+          <option value="contacted">Contacted</option>
+          <option value="docs_sent">Docs Sent</option>
+          <option value="offer_extended">Offer Extended</option>
+          <option value="hired">Hired</option>
+          <option value="not_interested">Not Interested</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+      <div id="owneropGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div class="text-center text-gray-400 py-12 col-span-3">Loading drivers…</div>
+      </div>
+    </div>
+
+    <!-- ====== SMS CENTER ====== -->
+    <div id="page-sms" class="page">
+      <h1 class="section-title">SMS Center</h1>
+      <p class="section-sub">Send messages and manage templates</p>
+
+      <div class="flex gap-2 mb-6">
+        <button class="tab-btn active" onclick="smsTab('send', this)">Send SMS</button>
+        <button class="tab-btn" onclick="smsTab('history', this)">History</button>
+        <button class="tab-btn" onclick="smsTab('templates', this)">Templates</button>
+      </div>
+
+      <!-- Send -->
+      <div id="smsTabSend">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 max-w-xl">
+          <h2 class="font-semibold text-gray-800 mb-4">Send a Message</h2>
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Driver (autocomplete)</label>
+              <input class="form-input" id="smsDriverSearch" placeholder="Search driver name…" oninput="smsDriverSearch()" autocomplete="off" />
+              <div id="smsDriverDropdown" class="absolute z-10 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 hidden max-h-48 overflow-y-auto w-80"></div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+              <input class="form-input" id="smsPhone" placeholder="+1 555 000 0000" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Template</label>
+              <select class="form-input" id="smsTemplate" onchange="applyTemplate()">
+                <option value="">— Select a template —</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Message</label>
+              <textarea class="form-input h-28 resize-none" id="smsMessage" placeholder="Type your message…"></textarea>
+            </div>
+            <button class="btn-primary w-full" onclick="sendSMS()" id="smsSendBtn">Send Message</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- History -->
+      <div id="smsTabHistory" class="hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table>
+              <thead><tr><th>Driver / Phone</th><th>Message</th><th>Template</th><th>Sent At</th><th>Status</th></tr></thead>
+              <tbody id="smsHistoryTable"><tr><td colspan="5" class="text-center text-gray-400 py-8">Loading…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Templates -->
+      <div id="smsTabTemplates" class="hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-4 max-w-xl">
+          <h2 class="font-semibold text-gray-800 mb-4" id="tplFormTitle">New Template</h2>
+          <input type="hidden" id="tplEditId" />
+          <div class="space-y-3">
+            <input class="form-input" id="tplName" placeholder="Template name" />
+            <select class="form-input" id="tplType">
+              <option value="both">Both</option>
+              <option value="company">Company Drivers</option>
+              <option value="owner_operator">Owner Operators</option>
+            </select>
+            <textarea class="form-input h-28 resize-none" id="tplMessage" placeholder="Message text…"></textarea>
+            <div class="flex gap-2">
+              <button class="btn-primary" onclick="saveTemplate()">Save Template</button>
+              <button class="btn-secondary" onclick="clearTemplateForm()">Clear</button>
+            </div>
+          </div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <table>
+            <thead><tr><th>Name</th><th>Type</th><th>Preview</th><th></th></tr></thead>
+            <tbody id="templatesTable"><tr><td colspan="4" class="text-center text-gray-400 py-6">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ====== DOCUMENTS ====== -->
+    <div id="page-docs" class="page">
+      <h1 class="section-title">Documents</h1>
+      <p class="section-sub">Share forms, handbooks, and rate sheets with drivers</p>
+
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6 max-w-xl">
+        <h2 class="font-semibold text-gray-800 mb-4">Add Document</h2>
+        <div class="space-y-3">
+          <input class="form-input" id="docName" placeholder="Document name" />
+          <input class="form-input" id="docUrl" placeholder="https://…" type="url" />
+          <select class="form-input" id="docType">
+            <option value="both">Both</option>
+            <option value="company">Company Drivers</option>
+            <option value="owner_operator">Owner Operators</option>
+          </select>
+          <input class="form-input" id="docDesc" placeholder="Description (optional)" />
+          <button class="btn-primary" onclick="addDocument()">Add Document</button>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <table>
+          <thead><tr><th>Name</th><th>Type</th><th>Description</th><th>Actions</th></tr></thead>
+          <tbody id="docsTable"><tr><td colspan="4" class="text-center text-gray-400 py-6">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ====== ADD DRIVER MODAL ====== -->
+<div id="addDriverModal" class="modal-overlay items-center justify-center p-4" onclick="closeAddDriverOnBg(event)">
+  <div class="modal-box max-w-lg p-6">
+    <div class="flex items-center justify-between mb-5">
+      <h2 class="text-lg font-bold text-gray-900" id="addDriverTitle">Add Driver</h2>
+      <button onclick="closeAddDriver()" class="text-gray-400 hover:text-gray-600 p-1">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <input type="hidden" id="addDriverType" />
+    <div class="grid grid-cols-2 gap-3">
+      <div class="col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">Full Name *</label><input class="form-input" id="addName" /></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">Phone</label><input class="form-input" id="addPhone" /></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">Email</label><input class="form-input" id="addEmail" type="email" /></div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">CDL Class</label>
+        <select class="form-input" id="addCdl"><option value="">None</option><option value="A">Class A</option><option value="B">Class B</option><option value="C">Class C</option></select>
+      </div>
+      <div><label class="block text-sm font-medium text-gray-700 mb-1">Experience (yrs)</label><input class="form-input" id="addExp" type="number" min="0" /></div>
+      <div class="col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">Location</label><input class="form-input" id="addLocation" /></div>
+      <div class="col-span-2"><label class="block text-sm font-medium text-gray-700 mb-1">Notes</label><textarea class="form-input h-20 resize-none" id="addNotes"></textarea></div>
+    </div>
+    <div class="flex gap-3 mt-5">
+      <button class="btn-primary flex-1" onclick="saveNewDriver()">Save Driver</button>
+      <button class="btn-secondary" onclick="closeAddDriver()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====== DRIVER PROFILE MODAL ====== -->
+<div id="profileModal" class="modal-overlay items-start justify-center p-4" onclick="closeProfileOnBg(event)">
+  <div class="modal-box max-w-3xl my-6" id="profileBox">
+    <div class="flex items-center justify-between p-6 border-b border-gray-100">
+      <div>
+        <h2 class="text-xl font-bold text-gray-900" id="profileName">Driver Name</h2>
+        <div class="text-sm text-gray-500 mt-0.5" id="profileMeta"></div>
+      </div>
+      <button onclick="closeProfile()" class="text-gray-400 hover:text-gray-600 p-1">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <!-- Status Pipeline -->
+    <div class="px-6 py-4 border-b border-gray-100 bg-gray-50">
+      <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Pipeline Status</div>
+      <div class="flex flex-wrap gap-2" id="pipelineStages"></div>
+    </div>
+
+    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Left: Profile + Checklist -->
+      <div class="space-y-5">
+        <div>
+          <h3 class="font-semibold text-gray-700 mb-3">Profile</h3>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="block text-xs font-medium text-gray-500 mb-1">Name</label><input class="form-input text-sm" id="pName" /></div>
+            <div><label class="block text-xs font-medium text-gray-500 mb-1">Phone</label><input class="form-input text-sm" id="pPhone" /></div>
+            <div><label class="block text-xs font-medium text-gray-500 mb-1">Email</label><input class="form-input text-sm" id="pEmail" type="email" /></div>
+            <div><label class="block text-xs font-medium text-gray-500 mb-1">CDL Class</label>
+              <select class="form-input text-sm" id="pCdl"><option value="">None</option><option value="A">Class A</option><option value="B">Class B</option><option value="C">Class C</option></select>
+            </div>
+            <div><label class="block text-xs font-medium text-gray-500 mb-1">Experience (yrs)</label><input class="form-input text-sm" id="pExp" type="number" /></div>
+            <div><label class="block text-xs font-medium text-gray-500 mb-1">Location</label><input class="form-input text-sm" id="pLocation" /></div>
+            <div class="col-span-2"><label class="block text-xs font-medium text-gray-500 mb-1">Notes</label><textarea class="form-input text-sm h-16 resize-none" id="pNotes"></textarea></div>
+          </div>
+          <button class="btn-primary mt-3 text-sm" onclick="saveProfile()">Save Changes</button>
+        </div>
+
+        <div>
+          <h3 class="font-semibold text-gray-700 mb-2">Onboarding Checklist</h3>
+          <div id="checklistItems" class="space-y-0"></div>
+        </div>
+      </div>
+
+      <!-- Right: Touchpoints -->
+      <div>
+        <h3 class="font-semibold text-gray-700 mb-3">Log Touchpoint</h3>
+        <div class="space-y-2 mb-4">
+          <div class="grid grid-cols-2 gap-2">
+            <div><label class="block text-xs font-medium text-gray-500 mb-1">Date</label><input class="form-input text-sm" id="tpDate" type="date" /></div>
+            <div><label class="block text-xs font-medium text-gray-500 mb-1">Method</label>
+              <select class="form-input text-sm" id="tpMethod">
+                <option value="call">Call</option><option value="sms">SMS</option><option value="email">Email</option><option value="in_person">In Person</option><option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div><label class="block text-xs font-medium text-gray-500 mb-1">Notes</label><textarea class="form-input text-sm h-16 resize-none" id="tpNotes"></textarea></div>
+          <div><label class="block text-xs font-medium text-gray-500 mb-1">Created By</label><input class="form-input text-sm" id="tpCreatedBy" placeholder="Your name" /></div>
+          <div><label class="block text-xs font-medium text-gray-500 mb-1">Follow-up Date</label><input class="form-input text-sm" id="tpFollowup" type="date" /></div>
+          <button class="btn-primary text-sm w-full" onclick="logTouchpoint()">Log Touchpoint</button>
+        </div>
+
+        <h3 class="font-semibold text-gray-700 mb-2">Touchpoint History</h3>
+        <div id="touchpointList" class="space-y-2 max-h-64 overflow-y-auto pr-1">
+          <div class="text-sm text-gray-400 text-center py-4">No touchpoints yet</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====================================================
+// GLOBALS & INIT
+// ====================================================
+let supabase = null;
+let allDrivers = { company: [], owner_operator: [] };
+let currentDriver = null;
+let allTemplates = [];
+
+const PIPELINE_STAGES = ['applied','contacted','docs_sent','offer_extended','hired','not_interested'];
+const STAGE_LABELS = { applied:'Applied', contacted:'Contacted', docs_sent:'Docs Sent', offer_extended:'Offer Extended', hired:'Hired', not_interested:'Not Interested', inactive:'Inactive' };
+
+const COMPANY_CHECKLIST = ['Application','MVR','PSP','Employment Verification','Drug Test Scheduled','Drug Test Passed','Orientation','Onboarding Complete'];
+const OWNEROP_CHECKLIST = ['Application','Authority Verified','Insurance','W-9','Rate Agreement','Load Board Access','First Load Assigned'];
+
+function init() {
+  if (typeof SUPABASE_URL !== 'undefined' && SUPABASE_URL !== 'YOUR_SUPABASE_URL') {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    loadAll();
+  } else {
+    document.getElementById('dashSetupBanner').classList.remove('hidden');
+    showSetupBanner();
+    loadDemoData();
+  }
+  document.getElementById('tpDate').valueAsDate = new Date();
+}
+
+function showSetupBanner() {
+  const banner = document.getElementById('setupBanner');
+  if (banner) banner.style.display = 'block';
+  document.getElementById('appRoot').style.paddingTop = '40px';
+  document.querySelector('main').style.paddingTop = '28px';
+}
+
+async function loadAll() {
+  await Promise.all([loadDrivers(), loadDashboard(), loadSMSHistory(), loadTemplates(), loadDocuments()]);
+}
+
+// ====================================================
+// NAVIGATION
+// ====================================================
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelector(`[data-page="${page}"]`).classList.add('active');
+  if (page === 'sms') { loadSMSHistory(); loadTemplates(); populateSMSTemplateSelect(); }
+  if (page === 'docs') loadDocuments();
+}
+
+// ====================================================
+// TOAST
+// ====================================================
+function toast(msg, type = 'success') {
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+
+// ====================================================
+// BADGE HELPER
+// ====================================================
+function badge(status) {
+  return `<span class="badge badge-${status}">${STAGE_LABELS[status] || status}</span>`;
+}
+
+// ====================================================
+// DRIVER LOADING & DISPLAY
+// ====================================================
+async function loadDrivers() {
+  if (!supabase) return;
+  const { data, error } = await supabase.from('drivers').select('*').order('created_at', { ascending: false });
+  if (error) { toast('Error loading drivers: ' + error.message, 'error'); return; }
+  allDrivers.company = data.filter(d => d.driver_type === 'company');
+  allDrivers.owner_operator = data.filter(d => d.driver_type === 'owner_operator');
+  renderDriverGrid('company');
+  renderDriverGrid('owner_operator');
+}
+
+function filterDrivers(type) {
+  const idPrefix = type === 'company' ? 'company' : 'ownerop';
+  const search = document.getElementById(idPrefix + 'Search').value.toLowerCase();
+  const status = document.getElementById(idPrefix + 'StatusFilter').value;
+  const key = type === 'company' ? 'company' : 'owner_operator';
+  const filtered = allDrivers[key].filter(d => {
+    const matchSearch = !search || d.name?.toLowerCase().includes(search) || d.phone?.includes(search) || d.location?.toLowerCase().includes(search);
+    const matchStatus = !status || d.status === status;
+    return matchSearch && matchStatus;
+  });
+  renderDriverGrid(type === 'company' ? 'company' : 'owner_operator', filtered);
+}
+
+function renderDriverGrid(type, drivers) {
+  const key = type === 'company' ? 'company' : 'owner_operator';
+  const gridId = type === 'company' ? 'companyGrid' : 'owneropGrid';
+  const list = drivers || allDrivers[key];
+  const grid = document.getElementById(gridId);
+  if (!list || list.length === 0) {
+    grid.innerHTML = `<div class="text-center text-gray-400 py-12 col-span-3"><svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>No drivers found</div>`;
+    return;
+  }
+  grid.innerHTML = list.map(d => `
+    <div class="driver-card">
+      <div class="flex items-start justify-between mb-3">
+        <div>
+          <div class="font-semibold text-gray-900">${escHtml(d.name)}</div>
+          <div class="text-sm text-gray-500">${escHtml(d.location || '—')}</div>
+        </div>
+        ${badge(d.status)}
+      </div>
+      <div class="text-sm text-gray-600 space-y-1 mb-4">
+        <div class="flex gap-2"><span class="text-gray-400">CDL:</span>${d.cdl_class || 'N/A'} · ${d.experience_years || 0} yrs exp</div>
+        <div class="flex gap-2"><span class="text-gray-400">📞</span>${escHtml(d.phone || '—')}</div>
+        <div class="flex gap-2 text-xs text-gray-400">Added ${formatDate(d.created_at)}</div>
+      </div>
+      <button class="btn-primary w-full text-sm" onclick="openProfile('${d.id}')">View Profile</button>
+    </div>
+  `).join('');
+}
+
+// ====================================================
+// DASHBOARD
+// ====================================================
+async function loadDashboard() {
+  if (!supabase) return;
+  const { data: drivers } = await supabase.from('drivers').select('id, status');
+  const today = new Date().toISOString().split('T')[0];
+  const { data: overdue } = await supabase.from('touchpoints')
+    .select('id, driver_id, follow_up_date, notes, drivers(name)')
+    .lt('follow_up_date', today)
+    .eq('follow_up_completed', false)
+    .order('follow_up_date');
+  const { data: recent } = await supabase.from('touchpoints')
+    .select('id, date, method, notes, created_by, drivers(name)')
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  const total = drivers?.length || 0;
+  const hired = drivers?.filter(d => d.status === 'hired').length || 0;
+  const pipeline = drivers?.filter(d => ['applied','contacted','docs_sent','offer_extended'].includes(d.status)).length || 0;
+  const overdueCount = overdue?.length || 0;
+
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statHired').textContent = hired;
+  document.getElementById('statPipeline').textContent = pipeline;
+  document.getElementById('statOverdue').textContent = overdueCount;
+  document.getElementById('overdueCount').textContent = overdueCount;
+
+  const tbody = document.getElementById('overdueTable');
+  if (!overdue || overdue.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-400 py-6">No overdue follow-ups 🎉</td></tr>';
+  } else {
+    tbody.innerHTML = overdue.map(o => `
+      <tr>
+        <td class="font-medium">${escHtml(o.drivers?.name || '—')}</td>
+        <td class="text-red-600 font-medium">${formatDate(o.follow_up_date)}</td>
+        <td class="text-gray-500 text-sm">${escHtml(o.notes || '—')}</td>
+        <td><button class="text-blue-600 text-sm hover:underline" onclick="openProfile('${o.driver_id}')">View</button></td>
+      </tr>`).join('');
+  }
+
+  const feed = document.getElementById('recentFeed');
+  if (!recent || recent.length === 0) {
+    feed.innerHTML = '<div class="text-sm text-gray-400 text-center py-4">No activity yet</div>';
+  } else {
+    feed.innerHTML = recent.map(r => `
+      <div class="touchpoint-item">
+        <div class="text-sm font-medium text-gray-800">${escHtml(r.drivers?.name || '—')} <span class="text-gray-400 font-normal">via ${r.method}</span></div>
+        <div class="text-xs text-gray-500 mt-0.5">${formatDate(r.date)} ${r.created_by ? '· ' + escHtml(r.created_by) : ''}</div>
+        ${r.notes ? `<div class="text-xs text-gray-600 mt-1">${escHtml(r.notes)}</div>` : ''}
+      </div>`).join('');
+  }
+}
+
+// ====================================================
+// ADD DRIVER MODAL
+// ====================================================
+function openAddDriver(type) {
+  document.getElementById('addDriverType').value = type;
+  document.getElementById('addDriverTitle').textContent = type === 'company' ? 'Add Company Driver' : 'Add Owner Operator';
+  ['addName','addPhone','addEmail','addLocation','addNotes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('addCdl').value = '';
+  document.getElementById('addExp').value = '';
+  document.getElementById('addDriverModal').classList.add('open');
+}
+function closeAddDriver() { document.getElementById('addDriverModal').classList.remove('open'); }
+function closeAddDriverOnBg(e) { if (e.target === document.getElementById('addDriverModal')) closeAddDriver(); }
+
+async function saveNewDriver() {
+  const name = document.getElementById('addName').value.trim();
+  if (!name) { toast('Name is required', 'error'); return; }
+  const type = document.getElementById('addDriverType').value;
+  const checklist = {};
+  const items = type === 'company' ? COMPANY_CHECKLIST : OWNEROP_CHECKLIST;
+  items.forEach(i => { checklist[i] = false; });
+
+  if (!supabase) { toast('No database connection — set up Supabase first', 'error'); return; }
+  const { error } = await supabase.from('drivers').insert({
+    name,
+    phone: document.getElementById('addPhone').value.trim(),
+    email: document.getElementById('addEmail').value.trim(),
+    cdl_class: document.getElementById('addCdl').value || null,
+    experience_years: parseInt(document.getElementById('addExp').value) || 0,
+    location: document.getElementById('addLocation').value.trim(),
+    notes: document.getElementById('addNotes').value.trim(),
+    driver_type: type,
+    status: 'applied',
+    checklist
+  });
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+  toast('Driver added!');
+  closeAddDriver();
+  await loadDrivers();
+  await loadDashboard();
+}
+
+// ====================================================
+// DRIVER PROFILE MODAL
+// ====================================================
+async function openProfile(driverId) {
+  if (!supabase) { toast('No database connection', 'error'); return; }
+  const { data: driver, error } = await supabase.from('drivers').select('*').eq('id', driverId).single();
+  if (error || !driver) { toast('Could not load driver', 'error'); return; }
+  currentDriver = driver;
+
+  document.getElementById('profileName').textContent = driver.name;
+  document.getElementById('profileMeta').textContent = `${driver.driver_type === 'company' ? 'Company Driver' : 'Owner Operator'} · ${driver.location || 'No location'} · ${driver.phone || 'No phone'}`;
+
+  // Pipeline
+  const pipeline = document.getElementById('pipelineStages');
+  pipeline.innerHTML = PIPELINE_STAGES.map(s => `
+    <button class="pipeline-stage ${driver.status === s ? 'active' : ''}" onclick="setStatus('${s}')">${STAGE_LABELS[s]}</button>
+  `).join('');
+
+  // Profile fields
+  document.getElementById('pName').value = driver.name || '';
+  document.getElementById('pPhone').value = driver.phone || '';
+  document.getElementById('pEmail').value = driver.email || '';
+  document.getElementById('pCdl').value = driver.cdl_class || '';
+  document.getElementById('pExp').value = driver.experience_years || 0;
+  document.getElementById('pLocation').value = driver.location || '';
+  document.getElementById('pNotes').value = driver.notes || '';
+
+  // Checklist
+  const items = driver.driver_type === 'company' ? COMPANY_CHECKLIST : OWNEROP_CHECKLIST;
+  const checklist = driver.checklist || {};
+  document.getElementById('checklistItems').innerHTML = items.map(item => `
+    <div class="checklist-item">
+      <input type="checkbox" id="chk_${slugify(item)}" ${checklist[item] ? 'checked' : ''} onchange="toggleChecklist('${item}', this.checked)" />
+      <label for="chk_${slugify(item)}" class="text-sm text-gray-700 cursor-pointer">${item}</label>
+    </div>
+  `).join('');
+
+  // Touchpoints
+  await loadTouchpoints(driverId);
+
+  document.getElementById('tpDate').valueAsDate = new Date();
+  document.getElementById('profileModal').classList.add('open');
+}
+
+function closeProfile() {
+  document.getElementById('profileModal').classList.remove('open');
+  currentDriver = null;
+  loadDrivers();
+  loadDashboard();
+}
+function closeProfileOnBg(e) { if (e.target === document.getElementById('profileModal')) closeProfile(); }
+
+async function setStatus(status) {
+  if (!currentDriver || !supabase) return;
+  const { error } = await supabase.from('drivers').update({ status }).eq('id', currentDriver.id);
+  if (error) { toast('Error updating status', 'error'); return; }
+  currentDriver.status = status;
+  document.querySelectorAll('.pipeline-stage').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent.trim() === STAGE_LABELS[status]);
+  });
+  toast('Status updated to ' + STAGE_LABELS[status]);
+}
+
+async function saveProfile() {
+  if (!currentDriver || !supabase) return;
+  const { error } = await supabase.from('drivers').update({
+    name: document.getElementById('pName').value.trim(),
+    phone: document.getElementById('pPhone').value.trim(),
+    email: document.getElementById('pEmail').value.trim(),
+    cdl_class: document.getElementById('pCdl').value || null,
+    experience_years: parseInt(document.getElementById('pExp').value) || 0,
+    location: document.getElementById('pLocation').value.trim(),
+    notes: document.getElementById('pNotes').value.trim(),
+  }).eq('id', currentDriver.id);
+  if (error) { toast('Error saving: ' + error.message, 'error'); return; }
+  toast('Profile saved!');
+  currentDriver.name = document.getElementById('pName').value.trim();
+  document.getElementById('profileName').textContent = currentDriver.name;
+}
+
+async function toggleChecklist(item, checked) {
+  if (!currentDriver || !supabase) return;
+  const checklist = currentDriver.checklist || {};
+  checklist[item] = checked;
+  currentDriver.checklist = checklist;
+  await supabase.from('drivers').update({ checklist }).eq('id', currentDriver.id);
+}
+
+async function loadTouchpoints(driverId) {
+  const { data, error } = await supabase.from('touchpoints').select('*').eq('driver_id', driverId).order('date', { ascending: false });
+  const list = document.getElementById('touchpointList');
+  if (!data || data.length === 0) {
+    list.innerHTML = '<div class="text-sm text-gray-400 text-center py-4">No touchpoints yet</div>';
+    return;
+  }
+  list.innerHTML = data.map(t => `
+    <div class="touchpoint-item">
+      <div class="flex items-center justify-between">
+        <div class="text-sm font-medium text-gray-800">${formatDate(t.date)} · <span class="capitalize">${t.method}</span></div>
+        <div class="flex items-center gap-2">
+          ${t.follow_up_date ? `<span class="text-xs text-blue-600">Follow-up: ${formatDate(t.follow_up_date)}</span>` : ''}
+          ${!t.follow_up_completed && t.follow_up_date ? `<button class="text-xs text-green-600 hover:underline" onclick="markFollowupDone('${t.id}', this)">✓ Done</button>` : ''}
+        </div>
+      </div>
+      ${t.notes ? `<div class="text-xs text-gray-600 mt-1">${escHtml(t.notes)}</div>` : ''}
+      ${t.created_by ? `<div class="text-xs text-gray-400 mt-0.5">by ${escHtml(t.created_by)}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+async function logTouchpoint() {
+  if (!currentDriver || !supabase) return;
+  const date = document.getElementById('tpDate').value;
+  const method = document.getElementById('tpMethod').value;
+  const notes = document.getElementById('tpNotes').value.trim();
+  const created_by = document.getElementById('tpCreatedBy').value.trim();
+  const follow_up_date = document.getElementById('tpFollowup').value || null;
+  if (!date || !method) { toast('Date and method required', 'error'); return; }
+  const { error } = await supabase.from('touchpoints').insert({ driver_id: currentDriver.id, date, method, notes, created_by, follow_up_date, follow_up_completed: false });
+  if (error) { toast('Error logging: ' + error.message, 'error'); return; }
+  toast('Touchpoint logged!');
+  document.getElementById('tpNotes').value = '';
+  document.getElementById('tpFollowup').value = '';
+  await loadTouchpoints(currentDriver.id);
+}
+
+async function markFollowupDone(touchpointId, btn) {
+  if (!supabase) return;
+  await supabase.from('touchpoints').update({ follow_up_completed: true }).eq('id', touchpointId);
+  btn.parentElement.innerHTML = '<span class="text-xs text-green-600">✓ Completed</span>';
+  toast('Follow-up marked complete!');
+}
+
+// ====================================================
+// SMS CENTER
+// ====================================================
+function smsTab(tab, btn) {
+  ['send','history','templates'].forEach(t => document.getElementById('smsTab' + t.charAt(0).toUpperCase() + t.slice(1)).classList.add('hidden'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('smsTab' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.remove('hidden');
+  btn.classList.add('active');
+  if (tab === 'history') loadSMSHistory();
+  if (tab === 'templates') loadTemplates();
+}
+
+let selectedDriverId = null;
+function smsDriverSearch() {
+  const q = document.getElementById('smsDriverSearch').value.toLowerCase();
+  const dd = document.getElementById('smsDriverDropdown');
+  if (!q || q.length < 2) { dd.classList.add('hidden'); return; }
+  const all = [...allDrivers.company, ...allDrivers.owner_operator];
+  const matches = all.filter(d => d.name.toLowerCase().includes(q)).slice(0, 8);
+  if (matches.length === 0) { dd.classList.add('hidden'); return; }
+  dd.innerHTML = matches.map(d => `<div class="px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm" onclick="selectSMSDriver('${d.id}','${escAttr(d.name)}','${escAttr(d.phone || '')}')">${escHtml(d.name)} <span class="text-gray-400">${escHtml(d.phone || '')}</span></div>`).join('');
+  dd.classList.remove('hidden');
+}
+function selectSMSDriver(id, name, phone) {
+  selectedDriverId = id;
+  document.getElementById('smsDriverSearch').value = name;
+  document.getElementById('smsPhone').value = phone;
+  document.getElementById('smsDriverDropdown').classList.add('hidden');
+}
+
+async function populateSMSTemplateSelect() {
+  const sel = document.getElementById('smsTemplate');
+  sel.innerHTML = '<option value="">— Select a template —</option>';
+  allTemplates.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = t.name;
+    opt.dataset.msg = t.message;
+    sel.appendChild(opt);
+  });
+}
+
+function applyTemplate() {
+  const sel = document.getElementById('smsTemplate');
+  const opt = sel.options[sel.selectedIndex];
+  if (opt && opt.dataset.msg) document.getElementById('smsMessage').value = opt.dataset.msg;
+}
+
+async function sendSMS() {
+  const to = document.getElementById('smsPhone').value.trim();
+  const message = document.getElementById('smsMessage').value.trim();
+  const btn = document.getElementById('smsSendBtn');
+  if (!to || !message) { toast('Phone and message required', 'error'); return; }
+  if (!supabase) { toast('No database connection', 'error'); return; }
+  const sel = document.getElementById('smsTemplate');
+  const template_name = sel.options[sel.selectedIndex]?.text || null;
+  btn.innerHTML = '<span class="spinner"></span> Sending…';
+  btn.disabled = true;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/send-sms`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+      body: JSON.stringify({ to, message, driver_id: selectedDriverId || null, template_name })
+    });
+    const data = await res.json();
+    if (data.success) {
+      toast('SMS sent!');
+      document.getElementById('smsMessage').value = '';
+      document.getElementById('smsPhone').value = '';
+      document.getElementById('smsDriverSearch').value = '';
+      selectedDriverId = null;
+      loadSMSHistory();
+    } else {
+      toast('Failed: ' + (data.error || 'Unknown error'), 'error');
+    }
+  } catch (e) {
+    toast('Network error: ' + e.message, 'error');
+  }
+  btn.innerHTML = 'Send Message';
+  btn.disabled = false;
+}
+
+async function loadSMSHistory() {
+  if (!supabase) return;
+  const { data } = await supabase.from('sms_log').select('*, drivers(name)').order('sent_at', { ascending: false }).limit(50);
+  const tbody = document.getElementById('smsHistoryTable');
+  if (!data || data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-400 py-8">No messages sent yet</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(s => `
+    <tr>
+      <td><div class="font-medium">${escHtml(s.drivers?.name || '—')}</div><div class="text-xs text-gray-400">${escHtml(s.phone)}</div></td>
+      <td class="max-w-xs"><div class="text-sm truncate" title="${escAttr(s.message)}">${escHtml(s.message)}</div></td>
+      <td class="text-sm text-gray-500">${escHtml(s.template_name || '—')}</td>
+      <td class="text-sm text-gray-500 whitespace-nowrap">${formatDateTime(s.sent_at)}</td>
+      <td><span class="badge ${s.status === 'sent' ? 'badge-hired' : 'badge-not_interested'}">${s.status}</span></td>
+    </tr>`).join('');
+}
+
+async function loadTemplates() {
+  if (!supabase) return;
+  const { data } = await supabase.from('sms_templates').select('*').order('created_at');
+  allTemplates = data || [];
+  const tbody = document.getElementById('templatesTable');
+  if (!allTemplates.length) {
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-400 py-6">No templates</td></tr>';
+    return;
+  }
+  tbody.innerHTML = allTemplates.map(t => `
+    <tr>
+      <td class="font-medium">${escHtml(t.name)}</td>
+      <td><span class="badge badge-applied">${t.driver_type}</span></td>
+      <td class="max-w-xs text-sm text-gray-500 truncate" title="${escAttr(t.message)}">${escHtml(t.message.slice(0, 60))}…</td>
+      <td class="whitespace-nowrap">
+        <button class="text-blue-600 text-sm hover:underline mr-3" onclick="editTemplate('${t.id}')">Edit</button>
+        <button class="btn-danger" onclick="deleteTemplate('${t.id}')">Delete</button>
+      </td>
+    </tr>`).join('');
+  populateSMSTemplateSelect();
+}
+
+async function saveTemplate() {
+  const id = document.getElementById('tplEditId').value;
+  const name = document.getElementById('tplName').value.trim();
+  const message = document.getElementById('tplMessage').value.trim();
+  const driver_type = document.getElementById('tplType').value;
+  if (!name || !message) { toast('Name and message required', 'error'); return; }
+  if (!supabase) { toast('No database connection', 'error'); return; }
+  if (id) {
+    const { error } = await supabase.from('sms_templates').update({ name, message, driver_type }).eq('id', id);
+    if (error) { toast('Error: ' + error.message, 'error'); return; }
+    toast('Template updated!');
+  } else {
+    const { error } = await supabase.from('sms_templates').insert({ name, message, driver_type });
+    if (error) { toast('Error: ' + error.message, 'error'); return; }
+    toast('Template created!');
+  }
+  clearTemplateForm();
+  loadTemplates();
+}
+
+function editTemplate(id) {
+  const t = allTemplates.find(t => t.id === id);
+  if (!t) return;
+  document.getElementById('tplEditId').value = t.id;
+  document.getElementById('tplName').value = t.name;
+  document.getElementById('tplMessage').value = t.message;
+  document.getElementById('tplType').value = t.driver_type;
+  document.getElementById('tplFormTitle').textContent = 'Edit Template';
+}
+
+async function deleteTemplate(id) {
+  if (!confirm('Delete this template?')) return;
+  await supabase.from('sms_templates').delete().eq('id', id);
+  toast('Template deleted');
+  loadTemplates();
+}
+
+function clearTemplateForm() {
+  document.getElementById('tplEditId').value = '';
+  document.getElementById('tplName').value = '';
+  document.getElementById('tplMessage').value = '';
+  document.getElementById('tplType').value = 'both';
+  document.getElementById('tplFormTitle').textContent = 'New Template';
+}
+
+// ====================================================
+// DOCUMENTS
+// ====================================================
+async function addDocument() {
+  const name = document.getElementById('docName').value.trim();
+  const url = document.getElementById('docUrl').value.trim();
+  const driver_type = document.getElementById('docType').value;
+  const description = document.getElementById('docDesc').value.trim();
+  if (!name || !url) { toast('Name and URL required', 'error'); return; }
+  if (!supabase) { toast('No database connection', 'error'); return; }
+  const { error } = await supabase.from('documents').insert({ name, url, driver_type, description });
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+  toast('Document added!');
+  document.getElementById('docName').value = '';
+  document.getElementById('docUrl').value = '';
+  document.getElementById('docDesc').value = '';
+  loadDocuments();
+}
+
+async function loadDocuments() {
+  if (!supabase) return;
+  const { data } = await supabase.from('documents').select('*').order('created_at', { ascending: false });
+  const tbody = document.getElementById('docsTable');
+  if (!data || data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-400 py-8">No documents yet</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.map(d => `
+    <tr>
+      <td><a href="${escAttr(d.url)}" target="_blank" class="text-blue-600 hover:underline font-medium">${escHtml(d.name)}</a></td>
+      <td><span class="badge badge-applied">${d.driver_type}</span></td>
+      <td class="text-sm text-gray-500">${escHtml(d.description || '—')}</td>
+      <td class="whitespace-nowrap">
+        <button class="text-blue-600 text-sm hover:underline mr-3" onclick="copyLink('${escAttr(d.url)}')">Copy Link</button>
+        <button class="btn-danger" onclick="deleteDocument('${d.id}')">Delete</button>
+      </td>
+    </tr>`).join('');
+}
+
+function copyLink(url) {
+  navigator.clipboard.writeText(url).then(() => toast('Link copied!')).catch(() => toast('Could not copy', 'error'));
+}
+
+async function deleteDocument(id) {
+  if (!confirm('Delete this document?')) return;
+  await supabase.from('documents').delete().eq('id', id);
+  toast('Document deleted');
+  loadDocuments();
+}
+
+// ====================================================
+// DEMO DATA (when no Supabase configured)
+// ====================================================
+function loadDemoData() {
+  allDrivers.company = [
+    { id: 'demo1', name: 'John Mitchell', phone: '(555) 123-4567', email: 'john@example.com', cdl_class: 'A', location: 'Nashville, TN', experience_years: 8, driver_type: 'company', status: 'contacted', notes: 'Strong candidate', created_at: new Date().toISOString() },
+    { id: 'demo2', name: 'Sarah Johnson', phone: '(555) 234-5678', email: 'sarah@example.com', cdl_class: 'A', location: 'Memphis, TN', experience_years: 5, driver_type: 'company', status: 'applied', notes: '', created_at: new Date().toISOString() },
+    { id: 'demo3', name: 'Mike Davis', phone: '(555) 345-6789', email: 'mike@example.com', cdl_class: 'B', location: 'Louisville, KY', experience_years: 12, driver_type: 'company', status: 'hired', notes: 'Starts Monday', created_at: new Date().toISOString() },
+  ];
+  allDrivers.owner_operator = [
+    { id: 'demo4', name: 'Carlos Rivera', phone: '(555) 456-7890', email: 'carlos@example.com', cdl_class: 'A', location: 'Atlanta, GA', experience_years: 15, driver_type: 'owner_operator', status: 'docs_sent', notes: 'Has own Peterbilt', created_at: new Date().toISOString() },
+    { id: 'demo5', name: 'Linda Thompson', phone: '(555) 567-8901', email: 'linda@example.com', cdl_class: 'A', location: 'Charlotte, NC', experience_years: 10, driver_type: 'owner_operator', status: 'offer_extended', notes: '', created_at: new Date().toISOString() },
+  ];
+  renderDriverGrid('company');
+  renderDriverGrid('owner_operator');
+  document.getElementById('statTotal').textContent = 5;
+  document.getElementById('statHired').textContent = 1;
+  document.getElementById('statPipeline').textContent = 3;
+  document.getElementById('statOverdue').textContent = 0;
+  document.getElementById('overdueCount').textContent = 0;
+  document.getElementById('overdueTable').innerHTML = '<tr><td colspan="4" class="text-center text-gray-400 py-6">Connect Supabase to see live data</td></tr>';
+  document.getElementById('recentFeed').innerHTML = '<div class="text-sm text-gray-400 text-center py-4">Connect Supabase to see activity</div>';
+}
+
+// ====================================================
+// UTILITIES
+// ====================================================
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(str) {
+  if (!str) return '';
+  return String(str).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function slugify(str) {
+  return str.toLowerCase().replace(/[^a-z0-9]/g,'_');
+}
+function formatDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function formatDateTime(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+// Close SMS dropdown on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('#smsDriverSearch') && !e.target.closest('#smsDriverDropdown')) {
+    document.getElementById('smsDriverDropdown').classList.add('hidden');
+  }
+});
+
+// Init
+init();
+</script>
+</body>
+</html>
