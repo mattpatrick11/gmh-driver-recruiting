@@ -670,20 +670,39 @@ window.addEventListener('DOMContentLoaded', function() {
     if (!phone) { showToast('Phone number is required', true); return; }
     if (!message) { showToast('Message is required', true); return; }
 
-    // Log to sms_log (actual SMS sending would require backend/Twilio)
-    var payload = {
-      phone: phone,
-      message: message,
-      template_name: templateName,
-      status: 'sent',
-      sent_at: new Date().toISOString()
-    };
+    // Send via Twilio edge function
+    var btn = document.getElementById('sms-send-btn');
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
 
-    sb.from('sms_log').insert([payload]).then(function(res) {
-      if (res.error) { showToast('Error: ' + res.error.message, true); return; }
-      showToast('SMS logged!');
-      document.getElementById('sms-message').value = '';
-      loadSmsHistory();
+    fetch(SUPABASE_URL + '/functions/v1/send-sms', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+      },
+      body: JSON.stringify({
+        to: phone,
+        message: message,
+        driver_id: selectedDriverId || null,
+        template_name: templateName || null
+      })
+    }).then(function(res) { return res.json(); }).then(function(data) {
+      if (data.success) {
+        showToast('SMS sent! ✓');
+        document.getElementById('sms-message').value = '';
+        document.getElementById('sms-phone').value = '';
+        document.getElementById('sms-driver-search').value = '';
+        selectedDriverId = null;
+        loadSmsHistory();
+      } else {
+        showToast('Failed: ' + (data.error || 'Unknown error'), true);
+      }
+    }).catch(function(err) {
+      showToast('Network error: ' + err.message, true);
+    }).finally(function() {
+      btn.disabled = false;
+      btn.textContent = 'Send Message';
     });
   });
 
